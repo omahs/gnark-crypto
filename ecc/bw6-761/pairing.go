@@ -75,74 +75,91 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 	result.Frobenius(&buf).
 		Mul(&result, &buf)
 
-	// Hard part (up to permutation)
-	// El Housni and Guillevic
-	// https://eprint.iacr.org/2020/351.pdf
-	var m1, _m1, m2, _m2, m3, f0, f0_36, g0, g1, _g1, g2, g3, _g3, g4, _g4, g5, _g5, g6, gA, gB, g034, _g1g2, gC, h1, h2, h2g2C, h4 GT
-	m1.Expt(&result)
-	_m1.Conjugate(&m1)
-	m2.Expt(&m1)
-	_m2.Conjugate(&m2)
-	m3.Expt(&m2)
-	f0.Frobenius(&result).
-		Mul(&f0, &result).
-		Mul(&f0, &m2)
-	m2.CyclotomicSquare(&_m1)
-	f0.Mul(&f0, &m2)
-	f0_36.CyclotomicSquare(&f0).
-		CyclotomicSquare(&f0_36).
-		CyclotomicSquare(&f0_36).
-		Mul(&f0_36, &f0).
-		CyclotomicSquare(&f0_36).
-		CyclotomicSquare(&f0_36)
-	g0.Mul(&result, &m1).
-		Frobenius(&g0).
-		Mul(&g0, &m3).
-		Mul(&g0, &_m2).
-		Mul(&g0, &_m1)
-	g1.Expt(&g0)
-	_g1.Conjugate(&g1)
-	g2.Expt(&g1)
-	g3.Expt(&g2)
-	_g3.Conjugate(&g3)
-	g4.Expt(&g3)
-	_g4.Conjugate(&g4)
-	g5.Expt(&g4)
-	_g5.Conjugate(&g5)
-	g6.Expt(&g5)
-	gA.Mul(&g3, &_g5).
-		CyclotomicSquare(&gA).
-		Mul(&gA, &g6).
-		Mul(&gA, &g1).
-		Mul(&gA, &g0)
-	g034.Mul(&g0, &g3).
-		Mul(&g034, &_g4)
-	gB.CyclotomicSquare(&g034).
-		Mul(&gB, &g034).
-		Mul(&gB, &g5).
-		Mul(&gB, &_g1)
-	_g1g2.Mul(&_g1, &g2)
-	gC.Mul(&_g3, &_g1g2).
-		CyclotomicSquare(&gC).
-		Mul(&gC, &_g1g2).
-		Mul(&gC, &g0).
-		CyclotomicSquare(&gC).
-		Mul(&gC, &g2).
-		Mul(&gC, &g0).
-		Mul(&gC, &g4)
+		// Hard part (up to permutation)
+		// El Housni and Guillevic
+		// https://eprint.iacr.org/2020/351.pdf
+	var f [8]GT
+	var fp [10]GT
+	f[0].Set(&result)
+	fp[0].Frobenius(&result)
+	for k := 1; k < 8; k++ {
+		f[k].Expt(&f[k-1])
+		fp[k].Frobenius(&f[k])
+	}
+	fp[8].Expt(&fp[7])
+	fp[9].Expt(&fp[8])
 
-		// ht, hy = 13, 9
-		// c1 = ht**2+3*hy**2 = 412
-	h1.Expc1(&gA)
-	// c2 = ht+hy = 22
-	h2.Expc2(&gB)
-	h2g2C.CyclotomicSquare(&gC).
-		Mul(&h2g2C, &h2)
-	h4.CyclotomicSquare(&h2g2C).
-		Mul(&h4, &h2g2C).
-		CyclotomicSquare(&h4)
-	result.Mul(&h1, &h4).
-		Mul(&result, &f0_36)
+	var tmp, f4fp2, f2fp4, f4fp2fp5, fp6fp8, f5fp7, f3f6, f1f7 GT
+	result.Conjugate(&fp[5]).
+		Mul(&result, &fp[6]).
+		Mul(&result, &fp[3]).
+		CyclotomicSquare(&result)
+	f4fp2.Mul(&f[4], &fp[2])
+	tmp.Mul(&f[0], &f[1]).
+		Mul(&tmp, &f[3]).
+		Mul(&tmp, &fp[8]).
+		Mul(&tmp, &f4fp2).
+		Conjugate(&tmp)
+	result.Mul(&result, &f[5]).
+		Mul(&result, &fp[0]).
+		Mul(&result, &tmp).
+		CyclotomicSquare(&result)
+	tmp.Conjugate(&f[7]).
+		Mul(&tmp, &fp[9])
+	result.Mul(&result, &tmp).
+		CyclotomicSquare(&result)
+	f2fp4.Mul(&f[2], &fp[4])
+	f4fp2fp5.Mul(&f4fp2, &fp[5])
+	tmp.Mul(&f2fp4, &f[3]).
+		Mul(&tmp, &fp[3]).
+		Conjugate(&tmp)
+	result.Mul(&result, &tmp).
+		Mul(&result, &f[6]).
+		Mul(&result, &fp[7]).
+		Mul(&result, &f4fp2fp5).
+		CyclotomicSquare(&result)
+	tmp.Mul(&fp[0], &fp[9]).
+		Conjugate(&tmp)
+	result.Mul(&result, &tmp).
+		Mul(&result, &f[0]).
+		Mul(&result, &f[7]).
+		Mul(&result, &fp[1]).
+		CyclotomicSquare(&result)
+	fp6fp8.Mul(&fp[6], &fp[8])
+	f5fp7.Mul(&f[5], &fp[7])
+	tmp.Conjugate(&fp6fp8)
+	result.Mul(&result, &tmp).
+		Mul(&result, &fp[2]).
+		Mul(&result, &f5fp7).
+		CyclotomicSquare(&result)
+	f3f6.Mul(&f[3], &f[6])
+	f1f7.Mul(&f[1], &f[7])
+	tmp.Mul(&f1f7, &f[2]).
+		Conjugate(&tmp)
+	result.Mul(&result, &tmp).
+		Mul(&result, &fp[9]).
+		Mul(&result, &f3f6).
+		CyclotomicSquare(&result)
+	tmp.Mul(&f4fp2, &f5fp7).
+		Mul(&tmp, &fp6fp8).
+		Conjugate(&tmp)
+	result.Mul(&result, &tmp).
+		Mul(&result, &f[0]).
+		Mul(&result, &fp[0]).
+		Mul(&result, &fp[3]).
+		Mul(&result, &fp[5]).
+		CyclotomicSquare(&result)
+	tmp.Conjugate(&f3f6).
+		Mul(&tmp, &fp[1])
+	result.Mul(&result, &tmp).
+		CyclotomicSquare(&result)
+	tmp.Mul(&f2fp4, &f4fp2fp5).
+		Mul(&tmp, &fp[9]).
+		Conjugate(&tmp)
+	result.Mul(&result, &tmp).
+		Mul(&result, &f1f7).
+		Mul(&result, &f5fp7).
+		Mul(&result, &fp[0])
 
 	return result
 }
